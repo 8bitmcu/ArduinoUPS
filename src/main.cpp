@@ -48,7 +48,7 @@ byte min_update_interval = 26;
 unsigned long v_timer = 0;
 
 PresentStatus iPresentStatus = {}, iPreviousStatus = {};
-KalmanFilter kf = KalmanFilter(); 
+KalmanFilter kf = KalmanFilter();
 PowerMonitor pm;
 
 
@@ -120,45 +120,49 @@ void loop() {
 
     // Read current output from ZMCT103C
     pm.sampleAndCalculate();
-
+    
     // Assume that we're charging if we're seeing a current draw above MIN_CURRENT
     bool is_charging = pm.Irms >= ZMCT103C_MINCURRENT;
-    is_charging = 0;
 
     Serial.print("AC Mains Current: ");
     Serial.println(pm.Irms, 4);
-    // TODO:
-    if(!is_charging) {
-        // Read voltage output from analog
-        float volt = ((float) analogRead(BATTERY_VOLTAGE_PIN)) / 1024 * 5.0 * BATTERY_VOLTAGE_FACTOR;
 
-        double dt = (millis() - v_timer) / 1000 / 60 / 60;
-        kf.predict(dt);
+    // Read voltage output from voltage module
+    float volt = ((float) analogRead(BATTERY_VOLTAGE_PIN)) / 1024 * 5.0 * BATTERY_VOLTAGE_FACTOR;
 
-        kf.update(volt, millis() / 1000 / 60 / 60);
-        v_timer = millis();
+    Serial.print("DC Battery Voltage: ");
+    Serial.println(volt, 4);
 
-        // Voltage correlation for state of charge
-        iRemaining = ((volt - BATTERY_MINVOLTAGE) / (BATTERY_MAXVOLTAGE - BATTERY_MINVOLTAGE)) * 100.0;
-        if (iRemaining > 100.0 || volt > BATTERY_MAXVOLTAGE) {
-          iRemaining = 100.0;
-        }
-        if (iRemaining < 0.0 || volt < BATTERY_MINVOLTAGE) {
-          iRemaining = 0.0;
-        }
+    // Time since last update (usually ~1sec, in hours)
+    double dt = (millis() - v_timer) / 1000 / 60 / 60;
+    kf.predict(dt);
 
-        iRunTimeToEmpty = kf.get_remaining_time() * 60 * 60;
+    // Update filter with new measurement, total elapsed time (in hours)
+    kf.update(volt, millis() / 1000 / 60 / 60);
+    v_timer = millis();
 
-        Serial.print("DC Battery Voltage: ");
-        Serial.println(volt, 4);
-        Serial.print("Percentage: ");
-        Serial.println(iRemaining, DEC);
-        Serial.print("Runtime: ");
-        Serial.println(iRunTimeToEmpty, 2);
-        Serial.print("Uncertainty: ");
-        Serial.println(kf.get_uncertainty(), 2);
-        Serial.println("");
+    Serial.print("Uncertainty: ");
+    Serial.println(kf.get_uncertainty(), 2);
+
+    // Voltage correlation for state of charge (linear model)
+    iRemaining = ((volt - BATTERY_MINVOLTAGE) / (BATTERY_MAXVOLTAGE - BATTERY_MINVOLTAGE)) * 100.0;
+    if (iRemaining > 100.0 || volt > BATTERY_MAXVOLTAGE) {
+        iRemaining = 100.0;
     }
+    if (iRemaining < 0.0 || volt < BATTERY_MINVOLTAGE) {
+        iRemaining = 0.0;
+    }
+
+    Serial.print("SoC (%): ");
+    Serial.println(iRemaining, DEC);
+
+    // Runtime to empty, convert from hours to seconds
+    iRunTimeToEmpty = kf.get_remaining_time() * 60 * 60;
+
+    Serial.print("Runtime: ");
+    Serial.println(iRunTimeToEmpty, 2);
+    Serial.println("");
+
 
     iPresentStatus.BatteryPresent = 1;
     iPresentStatus.Charging = is_charging ? 1 : 0;
