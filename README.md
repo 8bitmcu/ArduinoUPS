@@ -8,12 +8,22 @@ This project involves working with mains voltage (e.g., 120V/240V AC), which is 
 
 # 💡 ArduinoUPS Project
 
-ArduinoUPS is a cost-effective and efficient DC-DC Uninterruptible Power Supply (UPS) solution. It uses the [HIDPowerDevice](https://github.com/abratchik/HIDPowerDevice) library and off-the-shelf components to create a reliable backup for your critical devices.
+ArduinoUPS is a cost-effective and efficient DC-DC Uninterruptible Power Supply (UPS) solution. It uses off-the-shelf components to create a reliable backup system for your critical devices.
 
   - ✅ **Ideal for small systems** under 280 watts.
   - ⚡ **Simple and efficient** DC-to-DC power conversion.
   - 🔋 **High-longevity LiFePO4 batteries** for reliable, long-term use.
   - 💸 **Affordable** with minimal components to assemble.
+  - 📉 **USB HID compatible** monitor your UPS through your OS or [NUT](https://github.com/networkupstools/nut).
+
+
+#### Part 1: DC Power System
+
+The core of this project is a DC Uninterruptible Power Supply (UPS) built with a dedicated UPS/PSU module and a LiFePO4 battery. While this hardware can function on its own, it lacks monitoring capabilities.
+
+#### Part 2: Monitoring and Reporting
+
+An Arduino microcontroller monitors the UPS's operational status and reports the data back to a connected computer using the [HIDPowerDevice](https://github.com/abratchik/HIDPowerDevice) library. This monitoring system is designed to be compatible with the Network UPS Tools ([NUT](https://github.com/networkupstools/nut)) framework.
 
 -----
 
@@ -48,7 +58,6 @@ To power your equipment, you may need to stabilize the output voltage.
   * [3A Buck-Boost (1.25-26V Output)](https://s.click.aliexpress.com/e/_opfwM1Z)
   * [3A Buck-Boost (0.5-30V Output)](https://s.click.aliexpress.com/e/_ooifDCx)
   * [Fixed-Voltage Buck-Boost (1-5A, 12-28V Input)](https://s.click.aliexpress.com/e/_oFBA1GF) - *I really like these\!*
-  * [High-Current Buck-Boost (6-9A)](https://s.click.aliexpress.com/e/_olPjQWT)
 
 -----
 
@@ -79,12 +88,12 @@ You will need [PlatformIO](https://platformio.org) to build and flash the firmwa
 
 > **Alternative**: You can use the Arduino IDE, but you will need to:
 >
-> 1.  Rename `src/main.cpp` to `ArduinoUPS.ino`.
+> 1.  Rename `src/main.cpp` to `src/ArduinoUPS.ino`.
 > 2.  Manually install the libraries listed in the `platformio.ini` file.
 
 ### Project Configuration
 
-You **must edit `main.cpp`** to configure the project for your specific hardware and needs.
+You **must edit `config.h`** to configure the project for your specific hardware and needs.
 
 *(This section is a work in progress\!)*
 
@@ -100,3 +109,20 @@ You **must edit `main.cpp`** to configure the project for your specific hardware
     ```
 
 -----
+
+## 🖥️ Computer Configuration
+
+1.  **Configure NUT:**
+    * Use the provided `ups.conf` file as an example.
+    * You **must** edit this file and replace the default Product ID with the one for your device.
+
+2.  **Configure Linux udev Rules:**
+    > **Note:** This step is only required for Linux-based systems to ensure correct device permissions.
+
+    * Edit the `98-upower-hid.rules` file and set the Product ID to match your device.
+    * Copy the modified file into the `/etc/udev/rules.d/` directory.
+
+    ```bash
+    sudo cp 98-upower-hid.rules /etc/udev/rules.d/
+    ```
+

@@ -1,35 +1,7 @@
 #include <HIDPowerDevice.h>
 #include <PowerMonitor.h>
 #include "kalman.h"
-
-// Analog pin for the ZMCT103C module
-#define ZMCT103C_PIN              A1
-
-// Calibration factor for the ZMCT103C module
-#define ZMCT103C_CAL              3.0
-
-// Minimum current threshold needed to qualify as charging
-// 0.01 * ~120v = 1.2watts. We need to be drawing at least
-// 1.2w from the outlet to qualify as charging
-#define ZMCT103C_MINCURRENT       0.01
-
-// Analog pin for the battery voltage module
-#define BATTERY_VOLTAGE_PIN       A2
-
-// Calibration factor for the battery voltage module
-#define BATTERY_VOLTAGE_FACTOR    4.69
-
-// Minimum voltage that represents 0% charge state
-#define BATTERY_MINVOLTAGE        12.0
-
-// Maximum voltage that the battery is set for a full charge
-#define BATTERY_MAXVOLTAGE        14.4
-
-// In hours, the average runtime for the battery
-#define BATTERY_AVGRUNTIME        5.0
-
-// In hours, the average time it takes to reach full from empty
-#define BATTERY_AVGCHARGETIME     6.0
+#include "config.h"
 
 #define DEVICE_CHEMISTRY          "LiFePO4"
 #define DEVICE_VENDOR             "ArduinoUPS"
