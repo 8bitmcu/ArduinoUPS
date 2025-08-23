@@ -76,7 +76,7 @@ Follow these tips for a safe and successful build:
 
 ## 🔌 Wiring
 
-*(This section is a work in progress\!)*
+![Wiring dragram](assets/wiring.png)
 
 -----
 
@@ -91,11 +91,47 @@ You will need [PlatformIO](https://platformio.org) to build and flash the firmwa
 > 1.  Rename `src/main.cpp` to `src/ArduinoUPS.ino`.
 > 2.  Manually install the libraries listed in the `platformio.ini` file.
 
+### Hardware Calibration
+
+Before flashing the main project, you must calibrate the **ZMCT103C current sensor** and the **voltage sensor module**. A dedicated project in the `calib` folder is provided to simplify this process.
+
+1.  **Wiring:** Assemble the circuit according to the provided wiring diagram.
+
+2.  **Set Reference Voltage:** Edit the `calib/src/main.cpp` file and set the `BATTERY_KNOWNVOLTAGE` variable. This must be a stable, known voltage (from a battery or bench power supply) that you provide to the voltage sensor.
+
+    > **Tip:** Use a reference voltage that falls within your battery's typical operating range for best results.
+
+3.  **Connect Known Load:** Attach a predictable AC load, such as an incandescent lightbulb, for the ZMCT103C module to measure.
+
+4.  **Upload Calibration Code:** Open a terminal in the `calib` directory and run the following PlatformIO command:
+
+    ```bash
+    pio run --target upload
+    ```
+
+5.  **Monitor Serial Output:** Connect a serial monitor (e.g., `screen` on Linux or `PuTTY` on Windows) to your device at a **57600** baud rate.
+
+6.  **Record Voltage Factor:** From the serial output, find and record the average calculated `BATTERY_VOLTAGE_FACTOR`. You will need this value for the main project's configuration.
+
+7.  **Calibrate Current Sensor:** While watching the serial monitor, slowly turn the potentiometer on the ZMCT103C module until the displayed "AC Mains Current" matches your known load's current draw.
+
+
 ### Project Configuration
 
-You **must edit `config.h`** to configure the project for your specific hardware and needs.
+You **must edit `src/config.h`** to configure the project for your specific hardware and needs.
 
-*(This section is a work in progress\!)*
+1.  **Set Voltage Factor:** Update the `BATTERY_VOLTAGE_FACTOR` variable with the value you recorded during the hardware calibration step.
+
+2.  **Define Battery Voltage Range:** Configure the **maximum** (fully charged) and **minimum** (fully discharged) voltage levels for your battery.
+
+3.  **Estimate Runtime:** Set the battery's estimated runtime. You can calculate this by dividing your battery's capacity in Watt-hours (Wh) by the average power draw of your load in Watts (W).
+    > **Formula:**
+    > _Runtime (hours) = Battery Capacity (Wh) / Average Load (W)_
+
+4.  **Estimate Charge Time:** Set the battery's estimated charge time. This can be calculated by dividing your battery's capacity in Amp-hours (Ah) by the charger's output current in Amps (A).
+    > **Formula:**
+    > _Charge Time (hours) = Battery Capacity (Ah) / Charging Current (A)_
+
 
 -----
 
@@ -115,6 +151,7 @@ You **must edit `config.h`** to configure the project for your specific hardware
 1.  **Configure NUT:**
     * Use the provided `ups.conf` file as an example.
     * You **must** edit this file and replace the default Product ID with the one for your device.
+    > **Tip:** You can get the Product ID by running `lsusb` on Linux.
 
 2.  **Configure Linux udev Rules:**
     > **Note:** This step is only required for Linux-based systems to ensure correct device permissions.
