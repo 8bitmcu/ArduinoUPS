@@ -14,12 +14,12 @@ ArduinoUPS is a cost-effective and efficient DC-DC Uninterruptible Power Supply 
   - ⚡ **Simple and efficient** DC-to-DC power conversion.
   - 🔋 **High-longevity LiFePO4 batteries** for reliable, long-term use.
   - 💸 **Affordable** with minimal components to assemble.
-  - 📉 **USB HID compatible** monitor your UPS through your OS or [NUT](https://github.com/networkupstools/nut).
+  - 🔌 **USB HID compatible** monitor your UPS through your OS or [NUT](https://github.com/networkupstools/nut).
 
 
 #### Part 1: DC Power System
 
-The core of this project is a DC Uninterruptible Power Supply (UPS) built with a dedicated UPS/PSU module and a LiFePO4 battery. While this hardware can function on its own, it lacks monitoring capabilities.
+The core of this project is a DC Power Supply built with a dedicated UPS module and a LiFePO4 battery. While this hardware can function on its own, it lacks monitoring capabilities.
 
 #### Part 2: Monitoring and Reporting
 
@@ -43,12 +43,13 @@ You will need the following parts to build this project:
 
 To power your equipment, you may need to stabilize the output voltage.
 
-#### For a \~12V Computer System (PicoPSU)
+#### For a \~12V PSU Computer System
 
-  * [400W PicoPSU (DC 5-34V Input)](https://s.click.aliexpress.com/e/_omeJSUf) - *Recommended for wider voltage compatibility.*
+  * [125W PicoPSU (DC 6-24V Input)](https://www.mini-box.com/M3-ATX-DC-DC-ATX-Automotive-Computer-car-PC-Power-Supply)
   * [250W PicoPSU (DC 12-25V Input)](https://s.click.aliexpress.com/e/_oDlRFaP) - *Note: This unit's limited input range may not utilize your battery's full capacity.*
+  * [400W PicoPSU (DC 5-34V Input)](https://s.click.aliexpress.com/e/_omeJSUf) - *Recommended for wider voltage compatibility.*
 
-#### For a \~24V Computer System
+#### For a \~24V PSU Computer System
 
   * [300W Converter (DC 16-28V Input)](https://s.click.aliexpress.com/e/_op0HwJV)
   * [500W Converter (DC 16-60V Input)](https://s.click.aliexpress.com/e/_ooraGpZ)
@@ -57,8 +58,9 @@ To power your equipment, you may need to stabilize the output voltage.
 
   * [3A Buck-Boost (1.25-26V Output)](https://s.click.aliexpress.com/e/_opfwM1Z)
   * [3A Buck-Boost (0.5-30V Output)](https://s.click.aliexpress.com/e/_ooifDCx)
-  * [Fixed-Voltage Buck-Boost (1-5A, 12-28V Input)](https://s.click.aliexpress.com/e/_oFBA1GF) - *I really like these\!*
-
+  * [Fixed-Voltage Buck-Boost (1-5A, 9-36V Input)](https://s.click.aliexpress.com/e/_oFBA1GF) - *I really like these\!*
+  * [Fixed-Voltage Buck-Boost (15-30A, 9-36V Input)](https://s.click.aliexpress.com/e/_oCNc0DF)
+  * [5V Fixed-Voltage Buck (3-10A, 8-40V Input)](https://s.click.aliexpress.com/e/_oFlQC7n)
 -----
 
 ## 📝 Important Notes & Best Practices
@@ -151,7 +153,7 @@ You **must edit `src/config.h`** to configure the project for your specific hard
 1.  **Configure NUT:**
     * Use the provided `ups.conf` file as an example.
     * You **must** edit this file and replace the default Product ID with the one for your device.
-    > **Tip:** You can get the Product ID by running `lsusb` on Linux.
+        > **Tip:** You can get the Product ID by running `lsusb` on Linux.
 
 2.  **Configure Linux udev Rules:**
     > **Note:** This step is only required for Linux-based systems to ensure correct device permissions.
@@ -162,4 +164,8 @@ You **must edit `src/config.h`** to configure the project for your specific hard
     ```bash
     sudo cp 98-upower-hid.rules /etc/udev/rules.d/
     ```
-
+    * Restart computer or reload udev rules:
+    ```bash
+    sudo udevadm control --reload-rules
+    sudo udevadm trigger
+    ```

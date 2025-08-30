@@ -1,18 +1,20 @@
-#include <PowerMonitor.h>
+#include <EmonLib.h>
 
 // Analog input pin connected to ZMCT103C current sensor output
-#define ZMCT103C_PIN              A1
+#define ZMCT103C_PIN              A0
 
 // Calibration factor for the ZMCT103C module
-#define ZMCT103C_CAL              3.0
+#define ZMCT103C_CAL              1.26
 
 // Analog input pin for battery voltage divider module
 #define BATTERY_VOLTAGE_PIN       A2
 
-// Enter the measured battery voltage. Factor will be calculated automatically
+// Enter the measured DC voltage. Factor will be calculated automatically
 #define BATTERY_KNOWNVOLTAGE      13.6
 
-PowerMonitor pm;
+#define AC_VOLTAGE                120.0
+
+EnergyMonitor em;
 
 void setup() {
     pinMode(BATTERY_VOLTAGE_PIN, INPUT);
@@ -21,17 +23,20 @@ void setup() {
     // Initialize serial
     Serial.begin(57600);
 
-    // Initialize PowerMonitor (ZMCT103C)
-    pm.initCurrentSensor(ZMCT103C_PIN, ZMCT103C_CAL);
+    // Initialize EmonLib (ZMCT103C)
+    em.current(ZMCT103C_PIN, ZMCT103C_CAL);
 }
 
 void loop() {
 
     // Read current output from ZMCT103C
-    pm.sampleAndCalculate();
+    double irms = em.calcIrms(4096);
 
-    Serial.print("AC Mains Current: ");
-    Serial.println(pm.Irms, 4);
+    Serial.print("AC Current: ");
+    Serial.println(irms, 4);
+
+    Serial.print("Est. AC Power: ");
+    Serial.println(irms * AC_VOLTAGE, 4);
 
     // Read voltage output from voltage module, without factor
     float volt = ((float) analogRead(BATTERY_VOLTAGE_PIN)) / 1024 * 5.0;

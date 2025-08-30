@@ -1,9 +1,9 @@
 
 // Analog input pin connected to ZMCT103C current sensor output
-#define ZMCT103C_PIN              A1
+#define ZMCT103C_PIN              A0
 
 // Calibration factor for the ZMCT103C module
-#define ZMCT103C_CAL              3.0
+#define ZMCT103C_CAL              1.26
 
 // Current threshold in amperes, readings below this are considered noise/no charging
 #define ZMCT103C_MINCURRENT       0.01
@@ -12,10 +12,10 @@
 #define BATTERY_VOLTAGE_PIN       A2
 
 // Calibration factor for the battery voltage module
-#define BATTERY_VOLTAGE_FACTOR    4.69
+#define BATTERY_VOLTAGE_FACTOR    5.7
 
 // Battery empty threshold in volts (represents 0% state of charge)
-#define BATTERY_MINVOLTAGE        12.0
+#define BATTERY_MINVOLTAGE        11.2
 
 // Battery full threshold in volts (represents 100% state of charge) 
 #define BATTERY_MAXVOLTAGE        14.4

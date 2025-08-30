@@ -9,12 +9,12 @@ KalmanFilter::KalmanFilter() {
 // Initialize Kalman Filter
 void KalmanFilter::init(double v_full, double v_empty, double est_runtime) {
     // Initial state
-    x = 0.0;
+    x = est_runtime;
     P = 1.0;  // Initial uncertainty
 
     // Process and measurement noise (tuning parameters)
-    Q = 0.01;  // Process noise: how much we expect the model to be wrong (lower = more trust)
-    R = 0.1;   // Measurement noise: voltage measurement uncertainty (lower = more trust)
+    Q = 0.001;  // Process noise: how much we expect the model to be wrong (lower = more trust)
+    R = 0.05;   // Measurement noise: voltage measurement uncertainty (lower = more trust)
 
     // Model matrices
     F = 1.0;   // Assuming constant discharge rate for simplicity
@@ -50,12 +50,12 @@ double KalmanFilter::estimate_total_capacity(double current_voltage, double elap
     // total time would be: elapsed_time * (total_voltage_range / voltage_drop)
     double estimated_total_capacity = elapsed_time * (total_voltage_range / voltage_drop);
 
-    // Apply reasonable bounds (e.g., between 0.1 and 100 hours)
+    // Apply reasonable bounds (e.g., between 0.1 second and 100 hours)
     if (estimated_total_capacity < 0.1) {
         estimated_total_capacity = 0.1;
     }
-    if (estimated_total_capacity > 100.0) {
-        estimated_total_capacity = 100.0;
+    if (estimated_total_capacity > 100.0 * 60 * 60) {
+        estimated_total_capacity = 100.0 * 60 * 60;
     }
 
     return estimated_total_capacity;

@@ -1,5 +1,5 @@
 #include <HIDPowerDevice.h>
-#include <PowerMonitor.h>
+#include <EmonLib.h>
 #include "kalman.h"
 #include "config.h"
 
@@ -12,17 +12,18 @@ uint16_t iRemainTimeLimit = 600;
 uint16_t iRunTimeToEmpty = 0;
 uint16_t iPrevRunTimeToEmpty = 0;
 int16_t  iDelayBe4ShutDown = -1;
+uint16_t iVoltage = BATTERY_MAXVOLTAGE * 100;
 byte iFullChargeCapacity = 100;
 byte iRemaining = 100;
 byte iPrevRemaining = 0;
 byte min_update_interval = 26;
 
+float prevVoltage = 0;
 unsigned long v_timer = 0;
 
 PresentStatus iPresentStatus = {}, iPreviousStatus = {};
 KalmanFilter kf = KalmanFilter();
-PowerMonitor pm;
-
+EnergyMonitor em;
 
 void setup() {
     pinMode(BATTERY_VOLTAGE_PIN, INPUT);
@@ -31,8 +32,8 @@ void setup() {
     // Initialize serial
     Serial.begin(57600);
 
-    // Initialize PowerMonitor (ZMCT103C)
-    pm.initCurrentSensor(ZMCT103C_PIN, ZMCT103C_CAL);
+    // Initialize EmonLib (ZMCT103C)
+    em.current(ZMCT103C_PIN, ZMCT103C_CAL);
 
     // Initialize KalmanFilter
     kf.init(BATTERY_MAXVOLTAGE, BATTERY_MINVOLTAGE, BATTERY_AVGRUNTIME);
@@ -56,7 +57,6 @@ void setup() {
     const byte bCapacityGranularity2 = 1;
     byte iAudibleAlarmCtrl = 1; // 1 - Disabled, 2 - Enabled, 3 - Muted
     const uint16_t iConfigVoltage = BATTERY_MAXVOLTAGE * 100;
-    uint16_t iVoltage = BATTERY_MAXVOLTAGE * 100;
     uint16_t iAvgTimeToFull = BATTERY_AVGCHARGETIME * 60 * 60;
     uint16_t iAvgTimeToEmpty = BATTERY_AVGRUNTIME * 60 * 60;
     int16_t  iDelayBe4Reboot = -1;
@@ -86,50 +86,76 @@ void setup() {
     PowerDevice.setFeature(HID_PD_CPCTYGRANULARITY1, &bCapacityGranularity1, sizeof(bCapacityGranularity1));
     PowerDevice.setFeature(HID_PD_CPCTYGRANULARITY2, &bCapacityGranularity2, sizeof(bCapacityGranularity2));
     PowerDevice.setFeature(HID_PD_MANUFACTUREDATE, &iManufacturerDate, sizeof(iManufacturerDate));
+
+    v_timer = millis();
 }
 
 void loop() {
 
     // Read current output from ZMCT103C
-    pm.sampleAndCalculate();
-    
+    double irms = em.calcIrms(4096);
+    if (irms < 0) {
+      irms = 0; // Ensure non-negative
+    }
+    if (irms > 5.0) {
+      irms = 5.0; // Reasonable upper bound
+    }
     // Assume that we're charging if we're seeing a current draw above MIN_CURRENT
-    bool is_charging = pm.Irms >= ZMCT103C_MINCURRENT;
+    bool is_charging = irms >= ZMCT103C_MINCURRENT;
 
     Serial.print("AC Mains Current: ");
-    Serial.println(pm.Irms, 4);
+    Serial.println(irms, 4);
 
     // Read voltage output from voltage module
-    float volt = ((float) analogRead(BATTERY_VOLTAGE_PIN)) / 1024 * 5.0 * BATTERY_VOLTAGE_FACTOR;
+    long sum = 0;
+    const int samples = 10;
+    // Average multiple readings for stability
+    for (int i = 0; i < samples; i++) {
+        sum += analogRead(BATTERY_VOLTAGE_PIN);
+        delay(2); // Small delay between readings
+    }
+
+    float volt = (sum / samples) / 1024.0 * 5.0 * BATTERY_VOLTAGE_FACTOR;
 
     Serial.print("DC Battery Voltage: ");
     Serial.println(volt, 4);
 
-    // Time since last update (usually ~1sec, in hours)
-    double dt = (millis() - v_timer) / 1000 / 60 / 60;
+    // Time since last update (usually ~1sec)
+    unsigned long current_time = millis();
+    double dt = (current_time - v_timer) / 1000.0;
+    if (dt <= 0) {
+      dt = 0.001; // Minimum dt to prevent issues
+    }
     kf.predict(dt);
 
-    // Update filter with new measurement, total elapsed time (in hours)
-    kf.update(volt, millis() / 1000 / 60 / 60);
+    // Update filter with new measurement, total elapsed time (in seconds)
+    kf.update(volt, millis() / 1000);
     v_timer = millis();
 
     Serial.print("Uncertainty: ");
     Serial.println(kf.get_uncertainty(), 2);
 
     // Voltage correlation for state of charge (linear model)
-    iRemaining = ((volt - BATTERY_MINVOLTAGE) / (BATTERY_MAXVOLTAGE - BATTERY_MINVOLTAGE)) * 100.0;
-    if (iRemaining > 100.0 || volt > BATTERY_MAXVOLTAGE) {
-        iRemaining = 100.0;
+    float voltage_range = BATTERY_MAXVOLTAGE - BATTERY_MINVOLTAGE;
+    if (voltage_range > 0) {
+        iRemaining = (byte)(((volt - BATTERY_MINVOLTAGE) / voltage_range) * 100.0);
+    } else {
+        iRemaining = 0; // Default fallback
     }
-    if (iRemaining < 0.0 || volt < BATTERY_MINVOLTAGE) {
-        iRemaining = 0.0;
+
+    // Bounds checking
+    if (iRemaining > 100 || volt > BATTERY_MAXVOLTAGE) {
+        iRemaining = 100;
+    }
+    if (iRemaining < 0 || volt < BATTERY_MINVOLTAGE) {
+        iRemaining = 0;
     }
 
     Serial.print("SoC (%): ");
     Serial.println(iRemaining, DEC);
 
-    // Runtime to empty, convert from hours to seconds
-    iRunTimeToEmpty = kf.get_remaining_time() * 60 * 60;
+    // Runtime to empty
+    iRunTimeToEmpty = kf.get_remaining_time() / 60;
 
     Serial.print("Runtime: ");
     Serial.println(iRunTimeToEmpty, 2);
@@ -144,6 +170,15 @@ void loop() {
     iPresentStatus.RemainingTimeLimitExpired = is_charging ? 0 : (iRunTimeToEmpty < iRemainTimeLimit);
     iPresentStatus.ShutdownRequested = iDelayBe4ShutDown > 0 ? 1 : 0;
     iPresentStatus.ShutdownImminent = (iPresentStatus.ShutdownRequested || iPresentStatus.RemainingTimeLimitExpired) ? 1 : 0;
+
+
+    // Update voltage if it changed (10mV threshold)
+    if ((abs(prevVoltage - volt) > 0.01)) {
+        iVoltage = volt * 100;
+        // TODO test this
+        PowerDevice.sendReport(HID_PD_VOLTAGE, &iVoltage, sizeof(iVoltage));
+        prevVoltage = volt;
+    }
 
     // Update if status changed or min_update_interval 
     if((iPresentStatus != iPreviousStatus) || (iRemaining != iPrevRemaining) || (iRunTimeToEmpty != iPrevRunTimeToEmpty) || (iIntTimer>min_update_interval) ) {
@@ -162,3 +197,4 @@ void loop() {
     delay(1000);
     iIntTimer++;
 }
+
