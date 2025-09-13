@@ -22,7 +22,7 @@ float prevVoltage = 0;
 unsigned long v_timer = 0;
 
 PresentStatus iPresentStatus = {}, iPreviousStatus = {};
-KalmanFilter kf = KalmanFilter();
+KalmanFilter kf;
 EnergyMonitor em;
 
 void setup() {
@@ -112,7 +112,7 @@ void loop() {
     // Average multiple readings for stability
     for (int i = 0; i < samples; i++) {
         sum += analogRead(BATTERY_VOLTAGE_PIN);
-        delay(2); // Small delay between readings
+        delay(2);
     }
 
     float volt = (sum / samples) / 1024.0 * 5.0 * BATTERY_VOLTAGE_FACTOR;
@@ -158,7 +158,7 @@ void loop() {
     iRunTimeToEmpty = kf.get_remaining_time() / 60;
 
     Serial.print("Runtime: ");
-    Serial.println(iRunTimeToEmpty, 2);
+    Serial.println(iRunTimeToEmpty);
     Serial.println("");
 
 
@@ -176,7 +176,7 @@ void loop() {
     if ((abs(prevVoltage - volt) > 0.01)) {
         iVoltage = volt * 100;
         // TODO test this
-        PowerDevice.sendReport(HID_PD_VOLTAGE, &iVoltage, sizeof(iVoltage));
+        //PowerDevice.setFeature(HID_PD_VOLTAGE, &iVoltage, sizeof(iVoltage));
         prevVoltage = volt;
     }
 

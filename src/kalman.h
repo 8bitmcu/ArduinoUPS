@@ -12,8 +12,6 @@
 class KalmanFilter {
 public:
 
-    KalmanFilter();
-
     // Initialize Kalman Filter
     void init(double v_full, double v_empty, double est_runtime);
 

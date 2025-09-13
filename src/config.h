@@ -9,7 +9,7 @@
 #define ZMCT103C_MINCURRENT       0.01
 
 // Analog input pin for battery voltage divider module
-#define BATTERY_VOLTAGE_PIN       A2
+#define BATTERY_VOLTAGE_PIN       A1
 
 // Calibration factor for the battery voltage module
 #define BATTERY_VOLTAGE_FACTOR    5.7

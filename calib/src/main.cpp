@@ -7,7 +7,7 @@
 #define ZMCT103C_CAL              1.26
 
 // Analog input pin for battery voltage divider module
-#define BATTERY_VOLTAGE_PIN       A2
+#define BATTERY_VOLTAGE_PIN       A1
 
 // Enter the measured DC voltage. Factor will be calculated automatically
 #define BATTERY_KNOWNVOLTAGE      13.6
@@ -39,7 +39,15 @@ void loop() {
     Serial.println(irms * AC_VOLTAGE, 4);
 
     // Read voltage output from voltage module, without factor
-    float volt = ((float) analogRead(BATTERY_VOLTAGE_PIN)) / 1024 * 5.0;
+    long sum = 0;
+    const int samples = 10;
+    // Average multiple readings for stability
+    for (int i = 0; i < samples; i++) {
+        sum += analogRead(BATTERY_VOLTAGE_PIN);
+        delay(2);
+    }
+
+    float volt = (sum / samples) / 1024.0 * 5.0;
 
     // Estimate factor based on known voltage
     float fact = BATTERY_KNOWNVOLTAGE / volt;

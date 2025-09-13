@@ -2,10 +2,6 @@
 #include <math.h>
 
 
-KalmanFilter::KalmanFilter() {
-
-}
-
 // Initialize Kalman Filter
 void KalmanFilter::init(double v_full, double v_empty, double est_runtime) {
     // Initial state
